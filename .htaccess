@@ -1,0 +1,190 @@
+RewriteEngine On
+
+# Serve the dynamic sitemap at the conventional /sitemap.xml URL
+RewriteRule ^sitemap\.xml$ sitemap.php [L]
+RewriteBase /
+Options -Indexes
+
+<IfModule mod_rewrite.c>
+
+    # ------------------------------------------------------------
+    # BLOCK DIRECT DEBUG / INTERNAL DATA PATHS
+    # ------------------------------------------------------------
+    RewriteRule ^debug_images\.php$ - [F,L]
+    RewriteRule ^admin/_data(/.*)?$ - [F,L]
+    RewriteRule ^_data(/.*)?$ - [F,L]
+
+    # ------------------------------------------------------------
+    # FORCE HTTPS (behind proxy-safe)
+    # ------------------------------------------------------------
+    RewriteCond %{HTTPS} !=on
+    RewriteCond %{HTTP:X-Forwarded-Proto} !https [NC]
+    RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [R=301,L]
+
+    # ------------------------------------------------------------
+    # BLOCK SENSITIVE DIRECTORIES (security hardening)
+    # NOTE: This blocks direct web access; PHP include() still works.
+    # ------------------------------------------------------------
+    RewriteRule ^(includes|vendor|partials|logs|config)/ - [F,L]
+
+    # ------------------------------------------------------------
+    # PROTECT POST HANDLERS FROM SCANNER NOISE
+    # ------------------------------------------------------------
+    RewriteCond %{THE_REQUEST} \s/+services_request\.php[\s?] [NC]
+    RewriteCond %{REQUEST_METHOD} !POST [NC]
+    RewriteRule ^services_request\.php$ - [R=405,L]
+
+    # ------------------------------------------------------------
+    # DO NOT REWRITE ADMIN / STRIPE ENDPOINTS
+    # ------------------------------------------------------------
+    RewriteRule ^admin(/.*)?$ - [L]
+    RewriteRule ^(create_checkout_session|stripe_success|stripe_webhook)\.php$ - [L]
+
+    # ------------------------------------------------------------
+    # ACCOUNT ROUTES (before real-file check — account/ is a real dir)
+    # ------------------------------------------------------------
+    RewriteRule ^account/?$ account/index.php [L,QSA]
+    RewriteRule ^account/login/?$ account/login.php [L,QSA]
+    RewriteRule ^account/register/?$ account/register.php [L,QSA]
+    RewriteRule ^account/logout/?$ account/logout.php [L,QSA]
+    RewriteRule ^account/forgot-password/?$ account/forgot-password.php [L,QSA]
+    RewriteRule ^account/reset-password/?$ account/reset-password.php [L,QSA]
+
+    # ------------------------------------------------------------
+    # IF REQUEST IS A REAL FILE OR DIRECTORY, SERVE IT
+    # ------------------------------------------------------------
+    RewriteCond %{REQUEST_FILENAME} -f [OR]
+    RewriteCond %{REQUEST_FILENAME} -d
+    RewriteRule ^ - [L]
+
+    # ------------------------------------------------------------
+    # CANONICAL HOME: /index or /index.php -> /
+    # ------------------------------------------------------------
+    RewriteRule ^index/?$ / [R=301,L]
+    RewriteCond %{THE_REQUEST} \s/+index\.php[\s?] [NC]
+    RewriteRule ^index\.php$ / [R=301,L]
+
+    # ------------------------------------------------------------
+    # CANONICALIZE: /something.php -> /something
+    # (GET/HEAD only so POST doesn't break)
+    # Admin and account folders excluded — use .php directly
+    # ------------------------------------------------------------
+    RewriteCond %{REQUEST_URI} !^/admin/ [NC]
+    RewriteCond %{REQUEST_URI} !^/account/ [NC]
+    RewriteCond %{REQUEST_METHOD} =GET [OR]
+    RewriteCond %{REQUEST_METHOD} =HEAD
+    RewriteCond %{THE_REQUEST} \s/+([^.]+)\.php[\s?] [NC]
+    RewriteRule ^ %1 [R=301,L]
+
+    # ------------------------------------------------------------
+    # ROUTES (explicit main pages)
+    # ------------------------------------------------------------
+    RewriteRule ^$ index.php [L]
+
+    RewriteRule ^shop/?$ shop.php [L,QSA]
+    RewriteRule ^shop/([^/]+)/?$ shop.php?category=$1 [L,QSA]
+
+    RewriteRule ^product/([0-9]+)/?$ product.php?id=$1 [L,QSA]
+    RewriteRule ^product/([^/]+)/?$ product.php?slug=$1 [L,QSA]
+    RewriteRule ^blog/([^/]+)/?$ blog-post.php?slug=$1 [L,QSA]
+
+    RewriteRule ^services/?$ services.php [L,QSA]
+    RewriteRule ^service-shop/?$ services.php [L,QSA]
+    RewriteRule ^service_shop/?$ services.php [L,QSA]
+
+    RewriteRule ^about/?$ about.php [L,QSA]
+    RewriteRule ^lookbook/?$ lookbook.php [L,QSA]
+    RewriteRule ^arcade/?$ arcade.php [L,QSA]
+    RewriteRule ^events/?$ events.php [L,QSA]
+    RewriteRule ^cart/?$ cart.php [L,QSA]
+    RewriteRule ^exchange/?$ exchange.php [L,QSA]
+    RewriteRule ^wishlist/?$ wishlist.php [L,QSA]
+
+    # ------------------------------------------------------------
+    # FALLBACK: /page -> /page.php (only if /page is NOT a directory)
+    # ------------------------------------------------------------
+    RewriteCond %{REQUEST_FILENAME} !-d
+    RewriteCond %{REQUEST_FILENAME}.php -f
+    RewriteRule ^(.+?)/?$ $1.php [L,QSA]
+
+</IfModule>
+
+# ------------------------------------------------------------
+# 405 HANDLER
+# ------------------------------------------------------------
+ErrorDocument 405 "Method Not Allowed"
+
+# ------------------------------------------------------------
+# DENY DOTFILES (e.g., .env, .git, .htaccess backups)
+# ------------------------------------------------------------
+<FilesMatch "^\.">
+    Require all denied
+</FilesMatch>
+
+# ------------------------------------------------------------
+# DENY COMMON SENSITIVE EXTENSIONS ANYWHERE
+# ------------------------------------------------------------
+<FilesMatch "\.(env|log|sql|ini|bak|git)$">
+    Require all denied
+</FilesMatch>
+
+# ------------------------------------------------------------
+# CUSTOM 404
+# ------------------------------------------------------------
+ErrorDocument 404 /404.php
+
+# ------------------------------------------------------------
+# COMPRESSION
+# ------------------------------------------------------------
+<IfModule mod_deflate.c>
+    AddOutputFilterByType DEFLATE text/html text/plain text/xml text/css text/javascript application/javascript application/json application/xml application/xhtml+xml image/svg+xml
+    BrowserMatch ^Mozilla/4 gzip-only-text/html
+    BrowserMatch ^Mozilla/4\.0[678] no-gzip
+    BrowserMatch \bMSIE !no-gzip !gzip-only-text/html
+</IfModule>
+
+# ------------------------------------------------------------
+# BROWSER CACHING
+# ------------------------------------------------------------
+<IfModule mod_expires.c>
+    ExpiresActive On
+    ExpiresByType image/jpeg "access plus 30 days"
+    ExpiresByType image/jpg  "access plus 30 days"
+    ExpiresByType image/png  "access plus 30 days"
+    ExpiresByType image/gif  "access plus 30 days"
+    ExpiresByType image/webp "access plus 30 days"
+    ExpiresByType image/svg+xml "access plus 30 days"
+    ExpiresByType video/mp4  "access plus 60 days"
+    ExpiresByType video/webm "access plus 60 days"
+    ExpiresByType text/css   "access plus 7 days"
+    ExpiresByType application/javascript "access plus 7 days"
+    ExpiresByType font/woff2 "access plus 1 year"
+    ExpiresByType font/woff  "access plus 1 year"
+</IfModule>
+
+# ------------------------------------------------------------
+# CACHE-CONTROL HEADERS
+# ------------------------------------------------------------
+<IfModule mod_headers.c>
+    <FilesMatch "\.(jpg|jpeg|png|gif|webp|svg|mp4|webm|woff2|woff|css|js)$">
+        Header set Cache-Control "max-age=2592000, public, must-revalidate"
+    </FilesMatch>
+    <FilesMatch "\.(php)$">
+        Header set Cache-Control "no-store, no-cache, must-revalidate, max-age=0"
+        Header set Pragma "no-cache"
+    </FilesMatch>
+</IfModule>
+
+# ------------------------------------------------------------
+# PHP HANDLER (HostGator / CloudLinux style)
+# ------------------------------------------------------------
+<IfModule mime_module>
+    AddHandler application/x-httpd-ea-php82___lsphp .php .php8 .phtml
+</IfModule>
+
+# php -- BEGIN cPanel-generated handler, do not edit
+# Set the “ea-php82” package as the default “PHP” programming language.
+<IfModule mime_module>
+  AddHandler application/x-httpd-ea-php82___lsphp .php .php8 .phtml
+</IfModule>
+# php -- END cPanel-generated handler, do not edit
