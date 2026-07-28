@@ -1,0 +1,7 @@
+# Composer dependencies
+/vendor/
+
+# Runtime-generated directories/files
+/logs/
+/uploads/
+/_data/
