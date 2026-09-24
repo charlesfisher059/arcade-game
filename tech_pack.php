@@ -275,9 +275,16 @@ $boot = [
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1">
 <title>TEK PAK CREATOR | DIAMONDS OUTTA DIRT</title>
 <meta name="description" content="Build factory-ready garment tech packs — style specs, colorways, graded measurements, BOM, and construction notes.">
+<meta name="theme-color" content="#000000">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Tek Pak">
+<link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+<link rel="manifest" href="/manifest.json">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
@@ -298,16 +305,23 @@ $boot = [
   --font-display: "Cormorant Garamond", Georgia, serif;
   --headerH: 64px;
   --radius: 4px;
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-left: env(safe-area-inset-left, 0px);
+  --safe-right: env(safe-area-inset-right, 0px);
+  --dockH: 0px;
 }
 *, *::before, *::after { box-sizing: border-box; }
-html { scroll-behavior: smooth; }
+html { scroll-behavior: smooth; -webkit-text-size-adjust: 100%; }
 body {
   margin: 0;
   min-height: 100vh;
+  min-height: 100dvh;
   color: var(--text);
   font-family: var(--font-ui);
   font-size: 13px;
   line-height: 1.5;
+  padding-bottom: var(--dockH);
   background:
     radial-gradient(1200px 600px at 10% -10%, rgba(0,255,157,.08), transparent 55%),
     radial-gradient(900px 500px at 100% 0%, rgba(255,255,255,.04), transparent 50%),
@@ -316,15 +330,17 @@ body {
 a { color: var(--accent); text-decoration: none; }
 a:hover { text-decoration: underline; }
 button, input, select, textarea { font: inherit; color: inherit; }
-button { cursor: pointer; }
+button { cursor: pointer; -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
+input, select, textarea { font-size: 16px; } /* iOS: avoid auto-zoom on focus */
 .topbar {
   position: sticky; top: 0; z-index: 40;
   display: flex; align-items: center; justify-content: space-between; gap: 16px;
   min-height: var(--headerH);
-  padding: 10px 20px;
+  padding: calc(10px + var(--safe-top)) calc(20px + var(--safe-right)) 10px calc(20px + var(--safe-left));
   border-bottom: 1px solid var(--line);
   background: rgba(5,5,5,.92);
   backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
 }
 .brand {
   display: flex; flex-direction: column; gap: 2px; min-width: 0;
@@ -574,21 +590,169 @@ table.data td input:focus, table.data td select:focus {
   background: #000;
 }
 .print-only { display: none; }
+.iphone-banner { display: none; }
+.mobile-dock { display: none; }
+.desk-only { display: inline-flex; }
+.mobile-chip-bar { display: none; }
+
 @media (max-width: 1100px) {
   .shell { grid-template-columns: 1fr; }
   .rail, .inspector { border: 0; border-bottom: 1px solid var(--line); }
   .nav-sec { flex-direction: row; flex-wrap: wrap; }
   .grid-2, .grid-3, .grid-4 { grid-template-columns: 1fr 1fr; }
 }
-@media (max-width: 720px) {
-  .topbar { padding: 10px 12px; }
-  .main { padding: 16px 12px 40px; }
+@media (max-width: 820px) {
+  :root { --dockH: calc(64px + var(--safe-bottom)); --headerH: 56px; }
+  body { font-size: 14px; }
+  .topbar {
+    padding: calc(8px + var(--safe-top)) calc(12px + var(--safe-right)) 8px calc(12px + var(--safe-left));
+    gap: 10px;
+  }
+  .brand-mark { font-size: 1.25rem; }
+  .top-actions .desk-only { display: none !important; }
+  .top-actions { gap: 6px; }
+  .top-actions .btn { padding: 10px 12px; min-height: 44px; }
+  .iphone-banner {
+    display: block;
+    margin: 0 12px 12px;
+    padding: 12px 14px;
+    border: 1px solid rgba(0,255,157,.28);
+    background: var(--accent-dim);
+    border-radius: 8px;
+    color: var(--text);
+    font-size: 12px;
+    line-height: 1.45;
+  }
+  .iphone-banner strong { color: var(--accent); }
+  .iphone-banner .steps { color: var(--muted); margin-top: 6px; }
+  .mobile-chip-bar {
+    display: block;
+    position: sticky;
+    top: calc(var(--headerH) + var(--safe-top) - 8px);
+    z-index: 30;
+    margin: 0 -12px 14px;
+    padding: 8px 12px;
+    background: rgba(5,5,5,.94);
+    border-bottom: 1px solid var(--line);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+  }
+  .chip-scroll {
+    display: flex;
+    gap: 8px;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    padding-bottom: 2px;
+  }
+  .chip-scroll::-webkit-scrollbar { display: none; }
+  .chip {
+    flex: 0 0 auto;
+    border: 1px solid var(--line2);
+    background: #0a0a0a;
+    color: var(--muted);
+    padding: 10px 14px;
+    min-height: 40px;
+    border-radius: 999px;
+    letter-spacing: .06em;
+    font-size: 11px;
+  }
+  .chip.active {
+    color: #04140e;
+    background: var(--accent);
+    border-color: var(--accent);
+    font-weight: 700;
+  }
+  .rail {
+    display: none; /* replaced by chip bar + templates strip in main on phone */
+  }
+  .mobile-tpl {
+    display: flex;
+    gap: 8px;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    margin: 0 0 14px;
+    padding-bottom: 2px;
+  }
+  .mobile-tpl .btn {
+    flex: 0 0 auto;
+    min-height: 44px;
+    padding: 10px 14px;
+  }
+  .main {
+    padding: 12px calc(12px + var(--safe-right)) calc(24px + var(--dockH)) calc(12px + var(--safe-left));
+  }
+  .hero-line h1 { font-size: 2rem; }
+  .help { font-size: 12px; }
   .grid-2, .grid-3, .grid-4 { grid-template-columns: 1fr; }
-  .top-actions .btn span.hide-sm { display: none; }
+  .field input, .field select, .field textarea {
+    min-height: 48px;
+    padding: 12px 14px;
+    border-radius: 8px;
+    font-size: 16px;
+  }
+  .field textarea { min-height: 110px; }
+  .btn { min-height: 44px; border-radius: 8px; }
+  .panel { padding: 14px; border-radius: 10px; }
+  table.data td input, table.data td select {
+    min-height: 44px;
+    font-size: 16px;
+    min-width: 64px;
+  }
+  .table-wrap {
+    margin: 0 -4px;
+    border-radius: 8px;
+  }
+  .inspector {
+    padding: 14px calc(12px + var(--safe-right)) calc(20px + var(--safe-bottom)) calc(12px + var(--safe-left));
+  }
+  .list-item { padding: 12px; min-height: 52px; }
+  .list-item button { display: block; width: 100%; padding: 4px 0; font-size: 14px; }
+  .mobile-dock {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 6px;
+    position: fixed;
+    left: 0; right: 0; bottom: 0;
+    z-index: 50;
+    padding: 8px calc(10px + var(--safe-right)) calc(8px + var(--safe-bottom)) calc(10px + var(--safe-left));
+    border-top: 1px solid var(--line);
+    background: rgba(5,5,5,.96);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+  }
+  .mobile-dock .btn {
+    width: 100%;
+    padding: 10px 6px;
+    font-size: 11px;
+    letter-spacing: .04em;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+  }
+  .mobile-dock .btn small {
+    font-size: 9px;
+    letter-spacing: .12em;
+    color: inherit;
+    opacity: .75;
+  }
+  .mobile-dock .btn-primary small { opacity: .9; }
+  .toast {
+    bottom: calc(var(--dockH) + 12px);
+    left: 12px;
+    right: 12px;
+    max-width: none;
+  }
+  .ref-drop { padding: 22px 14px; min-height: 120px; border-radius: 10px; }
+}
+@media (min-width: 821px) {
+  .mobile-tpl { display: none; }
 }
 @media print {
-  body { background: #fff; color: #000; }
-  .topbar, .rail, .inspector, .toast, .no-print { display: none !important; }
+  body { background: #fff; color: #000; padding-bottom: 0; }
+  .topbar, .rail, .inspector, .toast, .no-print, .mobile-dock, .iphone-banner, .mobile-chip-bar { display: none !important; }
   .shell { display: block; }
   .main { padding: 0; }
   .section { display: block !important; break-inside: avoid; page-break-inside: avoid; }
@@ -612,14 +776,19 @@ table.data td input:focus, table.data td select:focus {
     <div class="brand-sub">TEK PAK CREATOR</div>
   </div>
   <div class="top-actions">
-    <a class="btn btn-ghost" href="/">HOME</a>
-    <a class="btn btn-ghost" href="/services">SERVICES</a>
-    <button type="button" class="btn" id="btnNew">NEW</button>
-    <button type="button" class="btn" id="btnSave"><span class="hide-sm">SAVE</span> DRAFT</button>
-    <button type="button" class="btn" id="btnBump">+ REV</button>
-    <button type="button" class="btn btn-primary" id="btnPrint">EXPORT / PRINT</button>
+    <a class="btn btn-ghost desk-only" href="/">HOME</a>
+    <a class="btn btn-ghost desk-only" href="/services">SERVICES</a>
+    <button type="button" class="btn desk-only" id="btnNew">NEW</button>
+    <button type="button" class="btn desk-only" id="btnSave"><span class="hide-sm">SAVE</span> DRAFT</button>
+    <button type="button" class="btn desk-only" id="btnBump">+ REV</button>
+    <button type="button" class="btn btn-primary desk-only" id="btnPrint">EXPORT / PRINT</button>
   </div>
 </header>
+
+<div class="iphone-banner no-print" id="iphoneBanner">
+  <strong>iPhone ready.</strong> Add to Home Screen for a full-screen Tek Pak app.
+  <div class="steps">Safari → Share → Add to Home Screen</div>
+</div>
 
 <div class="shell">
   <aside class="rail no-print">
@@ -648,6 +817,27 @@ table.data td input:focus, table.data td select:focus {
     <div class="print-only">
       <h1>DIAMONDS OUTTA DIRT — TEK PAK</h1>
       <div id="printHeaderMeta"></div>
+    </div>
+
+    <div class="mobile-chip-bar no-print">
+      <div class="chip-scroll" id="chipNav">
+        <button type="button" class="chip active" data-sec="style">STYLE</button>
+        <button type="button" class="chip" data-sec="colorways">COLOR</button>
+        <button type="button" class="chip" data-sec="measurements">MEASURE</button>
+        <button type="button" class="chip" data-sec="bom">BOM</button>
+        <button type="button" class="chip" data-sec="construction">BUILD</button>
+        <button type="button" class="chip" data-sec="artwork">ART</button>
+        <button type="button" class="chip" data-sec="labels">LABELS</button>
+        <button type="button" class="chip" data-sec="notes">NOTES</button>
+      </div>
+    </div>
+
+    <div class="mobile-tpl no-print" id="mobileTpl">
+      <button type="button" class="btn" data-tpl="tee">TEE</button>
+      <button type="button" class="btn" data-tpl="hoodie">HOODIE</button>
+      <button type="button" class="btn" data-tpl="pants">PANTS</button>
+      <button type="button" class="btn" data-tpl="shorts">SHORTS</button>
+      <button type="button" class="btn" data-tpl="cap">CAP</button>
     </div>
 
     <div class="hero-line no-print">
@@ -852,6 +1042,13 @@ table.data td input:focus, table.data td select:focus {
 </div>
 
 <div class="toast" id="toast" role="status"></div>
+
+<nav class="mobile-dock no-print" aria-label="Tek Pak actions">
+  <button type="button" class="btn" id="mBtnNew">NEW<small>PACK</small></button>
+  <button type="button" class="btn" id="mBtnSave">SAVE<small>DRAFT</small></button>
+  <button type="button" class="btn" id="mBtnBump">+ REV<small>BUMP</small></button>
+  <button type="button" class="btn btn-primary" id="mBtnPrint">PRINT<small>EXPORT</small></button>
+</nav>
 
 <script>
 (() => {
@@ -1257,19 +1454,35 @@ table.data td input:focus, table.data td select:focus {
   }
 
   /* ─── Nav ─── */
+  function goSection(sec) {
+    document.querySelectorAll('#secNav .nav-btn').forEach(b => b.classList.toggle('active', b.dataset.sec === sec));
+    document.querySelectorAll('#chipNav .chip').forEach(b => b.classList.toggle('active', b.dataset.sec === sec));
+    document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+    const el = document.getElementById('sec-' + sec);
+    if (el) el.classList.add('active');
+    const chip = document.querySelector('#chipNav .chip.active');
+    if (chip && chip.scrollIntoView) chip.scrollIntoView({ inline: 'center', block: 'nearest', behavior: 'smooth' });
+  }
+
   document.getElementById('secNav').addEventListener('click', (e) => {
     const btn = e.target.closest('[data-sec]');
     if (!btn) return;
-    document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
-    btn.classList.add('active');
-    document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
-    document.getElementById('sec-' + btn.dataset.sec).classList.add('active');
+    goSection(btn.dataset.sec);
   });
-  document.getElementById('tplNav').addEventListener('click', (e) => {
-    const btn = e.target.closest('[data-tpl]');
+  document.getElementById('chipNav').addEventListener('click', (e) => {
+    const btn = e.target.closest('[data-sec]');
     if (!btn) return;
-    applyTemplate(btn.dataset.tpl);
+    goSection(btn.dataset.sec);
   });
+  function wireTemplates(root) {
+    root.addEventListener('click', (e) => {
+      const btn = e.target.closest('[data-tpl]');
+      if (!btn) return;
+      applyTemplate(btn.dataset.tpl);
+    });
+  }
+  wireTemplates(document.getElementById('tplNav'));
+  wireTemplates(document.getElementById('mobileTpl'));
 
   document.getElementById('addColor').onclick = () => {
     state.pack.colorways.push({ name: 'Colorway ' + (state.pack.colorways.length + 1), body: '', accent: '', pantone: '', hex: '#222222' });
@@ -1412,11 +1625,14 @@ table.data td input:focus, table.data td select:focus {
   document.getElementById('btnSave').onclick = () => saveServer(false);
   document.getElementById('btnBump').onclick = () => saveServer(true);
   document.getElementById('btnPrint').onclick = () => {
-    // reveal all sections for print
     document.querySelectorAll('.section').forEach(s => s.classList.add('active'));
     syncMeta();
     window.print();
   };
+  document.getElementById('mBtnSave').onclick = () => saveServer(false);
+  document.getElementById('mBtnBump').onclick = () => saveServer(true);
+  document.getElementById('mBtnPrint').onclick = () => document.getElementById('btnPrint').click();
+  document.getElementById('mBtnNew').onclick = () => document.getElementById('btnNew').click();
   document.getElementById('btnRefresh').onclick = () => refreshList();
   document.getElementById('btnDelete').onclick = async () => {
     if (!state.publicId) return toast('Nothing to delete', true);
@@ -1443,6 +1659,16 @@ table.data td input:focus, table.data td select:focus {
     history.replaceState(null, '', BOOT.endpoint);
     toast('New tek pak');
   };
+
+  // Hide install tip when already running as home-screen app
+  try {
+    const standalone = window.navigator.standalone === true
+      || window.matchMedia('(display-mode: standalone)').matches;
+    if (standalone) {
+      const ban = document.getElementById('iphoneBanner');
+      if (ban) ban.style.display = 'none';
+    }
+  } catch (_) {}
 
   // Boot
   if (!BOOT.pack) {
