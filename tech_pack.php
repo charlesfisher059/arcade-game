@@ -606,38 +606,6 @@ table.data td input:focus, table.data td select:focus {
 .iphone-banner strong { color: var(--accent); }
 .iphone-banner .steps { color: var(--muted); margin-top: 6px; display: grid; gap: 4px; }
 body.is-standalone .iphone-banner { display: none !important; }
-.desktop-only-gate {
-  display: none;
-  position: fixed;
-  inset: 0;
-  z-index: 100;
-  background:
-    radial-gradient(800px 400px at 50% 0%, rgba(0,255,157,.1), transparent 55%),
-    #050505;
-  color: var(--text);
-  padding: calc(24px + var(--safe-top)) 22px calc(24px + var(--safe-bottom));
-  align-items: center;
-  justify-content: center;
-  text-align: center;
-}
-.desktop-only-gate .gate-box { max-width: 420px; }
-.desktop-only-gate h1 {
-  font-family: var(--font-display);
-  font-size: 2.4rem;
-  margin: 0 0 10px;
-  font-weight: 600;
-}
-.desktop-only-gate p { color: var(--muted); margin: 0 0 18px; line-height: 1.55; }
-.desktop-only-gate .gate-brand {
-  letter-spacing: .2em;
-  font-size: 10px;
-  color: var(--accent);
-  margin-bottom: 18px;
-}
-.desktop-only-gate code {
-  color: var(--accent);
-  font-size: 12px;
-}
 .mobile-dock { display: none; }
 .desk-only { display: inline-flex; }
 .mobile-chip-bar { display: none; }
@@ -791,7 +759,7 @@ body.is-standalone .iphone-banner { display: none !important; }
 }
 @media print {
   body { background: #fff; color: #000; padding-bottom: 0; }
-  .topbar, .rail, .inspector, .toast, .no-print, .mobile-dock, .iphone-banner, .mobile-chip-bar, .desktop-only-gate { display: none !important; }
+  .topbar, .rail, .inspector, .toast, .no-print, .mobile-dock, .iphone-banner, .mobile-chip-bar { display: none !important; }
   .shell { display: block; }
   .main { padding: 0; }
   .section { display: block !important; break-inside: avoid; page-break-inside: avoid; }
