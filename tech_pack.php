@@ -284,7 +284,9 @@ $boot = [
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Tek Pak">
 <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
-<link rel="manifest" href="/manifest.json">
+<link rel="manifest" href="/manifest-tekpak.json">
+<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+<link rel="icon" type="image/png" sizes="192x192" href="/android-chrome-192x192.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
@@ -590,7 +592,22 @@ table.data td input:focus, table.data td select:focus {
   background: #000;
 }
 .print-only { display: none; }
-.iphone-banner { display: none; }
+.iphone-banner {
+  display: block;
+  margin: 14px 20px 0;
+  padding: 14px 16px;
+  border: 1px solid rgba(0,255,157,.28);
+  background: var(--accent-dim);
+  border-radius: 8px;
+  color: var(--text);
+  font-size: 12px;
+  line-height: 1.45;
+}
+.iphone-banner strong { color: var(--accent); }
+.iphone-banner .steps { color: var(--muted); margin-top: 6px; display: grid; gap: 4px; }
+.iphone-banner .desk-hint { display: block; }
+.iphone-banner .phone-hint { display: none; }
+body.is-standalone .iphone-banner { display: none !important; }
 .mobile-dock { display: none; }
 .desk-only { display: inline-flex; }
 .mobile-chip-bar { display: none; }
@@ -613,18 +630,11 @@ table.data td input:focus, table.data td select:focus {
   .top-actions { gap: 6px; }
   .top-actions .btn { padding: 10px 12px; min-height: 44px; }
   .iphone-banner {
-    display: block;
     margin: 0 12px 12px;
     padding: 12px 14px;
-    border: 1px solid rgba(0,255,157,.28);
-    background: var(--accent-dim);
-    border-radius: 8px;
-    color: var(--text);
-    font-size: 12px;
-    line-height: 1.45;
   }
-  .iphone-banner strong { color: var(--accent); }
-  .iphone-banner .steps { color: var(--muted); margin-top: 6px; }
+  .iphone-banner .desk-hint { display: none; }
+  .iphone-banner .phone-hint { display: block; }
   .mobile-chip-bar {
     display: block;
     position: sticky;
@@ -781,13 +791,20 @@ table.data td input:focus, table.data td select:focus {
     <button type="button" class="btn desk-only" id="btnNew">NEW</button>
     <button type="button" class="btn desk-only" id="btnSave"><span class="hide-sm">SAVE</span> DRAFT</button>
     <button type="button" class="btn desk-only" id="btnBump">+ REV</button>
+    <button type="button" class="btn btn-primary desk-only" id="btnInstall" hidden>INSTALL APP</button>
     <button type="button" class="btn btn-primary desk-only" id="btnPrint">EXPORT / PRINT</button>
   </div>
 </header>
 
 <div class="iphone-banner no-print" id="iphoneBanner">
-  <strong>iPhone ready.</strong> Add to Home Screen for a full-screen Tek Pak app.
-  <div class="steps">Safari → Share → Add to Home Screen</div>
+  <strong>Tek Pak App.</strong> Try it here first — install to your desktop or phone, then put it on the live site when you’re ready.
+  <div class="steps" id="installSteps">
+    <span class="desk-hint"><b>Desktop (Chrome/Edge):</b> click <b>INSTALL APP</b> in the top bar.</span>
+    <span class="phone-hint"><b>iPhone:</b> Safari → Share → Add to Home Screen.</span>
+  </div>
+  <div style="margin-top:10px">
+    <button type="button" class="btn btn-primary" id="btnInstallBanner" hidden>INSTALL APP</button>
+  </div>
 </div>
 
 <div class="shell">
@@ -904,7 +921,7 @@ table.data td input:focus, table.data td select:focus {
         <h3>REFERENCE / FLAT</h3>
         <div class="ref-drop" id="refDrop">
           Drop a flat sketch or sample photo here, or
-          <label style="color:var(--accent);cursor:pointer;text-decoration:underline"> choose file
+          <label style="color:var(--accent);cursor:pointer;text-decoration:underline"> choose / take photo
             <input type="file" id="refFile" accept="image/*" hidden>
           </label>
           <div id="refMeta" style="margin-top:8px;font-size:11px"></div>
@@ -1047,6 +1064,7 @@ table.data td input:focus, table.data td select:focus {
   <button type="button" class="btn" id="mBtnNew">NEW<small>PACK</small></button>
   <button type="button" class="btn" id="mBtnSave">SAVE<small>DRAFT</small></button>
   <button type="button" class="btn" id="mBtnBump">+ REV<small>BUMP</small></button>
+  <button type="button" class="btn btn-primary" id="mBtnInstall" hidden>APP<small>INSTALL</small></button>
   <button type="button" class="btn btn-primary" id="mBtnPrint">PRINT<small>EXPORT</small></button>
 </nav>
 
@@ -1660,25 +1678,103 @@ table.data td input:focus, table.data td select:focus {
     toast('New tek pak');
   };
 
-  // Hide install tip when already running as home-screen app
+  // Hide install tip when already running as home-screen / installed app
+  let deferredInstall = null;
+  const installBtns = [
+    document.getElementById('btnInstall'),
+    document.getElementById('btnInstallBanner'),
+    document.getElementById('mBtnInstall'),
+  ].filter(Boolean);
+
+  function showInstallButtons(show) {
+    installBtns.forEach((b) => {
+      if (!b) return;
+      b.hidden = !show;
+    });
+    // On phone dock, when install shows, drop PRINT to keep 4 slots; PRINT stays in overflow via save flow? 
+    // Better: keep print, allow 5 cols when install visible
+    const dock = document.querySelector('.mobile-dock');
+    if (dock) dock.style.gridTemplateColumns = show ? 'repeat(5, 1fr)' : 'repeat(4, 1fr)';
+  }
+
+  async function triggerInstall() {
+    if (deferredInstall) {
+      deferredInstall.prompt();
+      try {
+        const choice = await deferredInstall.userChoice;
+        if (choice && choice.outcome === 'accepted') {
+          toast('Tek Pak installed');
+          showInstallButtons(false);
+        }
+      } catch (_) {}
+      deferredInstall = null;
+      return;
+    }
+    // Safari / unsupported browsers — guide the user
+    const isiOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+    if (isiOS) {
+      toast('Safari → Share → Add to Home Screen');
+    } else {
+      toast('Use browser menu → Install / Create shortcut');
+    }
+  }
+
+  installBtns.forEach((b) => { b.onclick = () => triggerInstall(); });
+
+  window.addEventListener('beforeinstallprompt', (e) => {
+    e.preventDefault();
+    deferredInstall = e;
+    showInstallButtons(true);
+  });
+  window.addEventListener('appinstalled', () => {
+    deferredInstall = null;
+    showInstallButtons(false);
+    toast('Tek Pak app ready');
+  });
+
+  // Show banner install button on desktop even before beforeinstallprompt (manual tip)
+  if (!(/iPad|iPhone|iPod/.test(navigator.userAgent))) {
+    const ban = document.getElementById('btnInstallBanner');
+    if (ban) ban.hidden = false;
+  }
+
   try {
     const standalone = window.navigator.standalone === true
-      || window.matchMedia('(display-mode: standalone)').matches;
+      || window.matchMedia('(display-mode: standalone)').matches
+      || window.matchMedia('(display-mode: minimal-ui)').matches;
     if (standalone) {
-      const ban = document.getElementById('iphoneBanner');
-      if (ban) ban.style.display = 'none';
+      document.body.classList.add('is-standalone');
+      showInstallButtons(false);
+    }
+  } catch (_) {}
+
+  // Register Tek Pak service worker (offline shell + installability)
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('/sw-tekpak.js').catch(() => {});
+  }
+
+  // PWA shortcut: /tek-pak?new=1
+  try {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('new') === '1') {
+      state.publicId = '';
+      state.revision = 1;
+      state.status = 'draft';
+      state.pack = emptyPack();
+      applyTemplate('tee', true);
+      history.replaceState(null, '', BOOT.endpoint);
     }
   } catch (_) {}
 
   // Boot
   if (!BOOT.pack) {
     const local = loadLocal();
-    if (local && local.pack) {
+    if (local && local.pack && !(new URLSearchParams(window.location.search).get('new') === '1')) {
       state.publicId = local.publicId || '';
       state.revision = local.revision || 1;
       state.status = local.status || 'draft';
       state.pack = local.pack;
-    } else {
+    } else if (!(new URLSearchParams(window.location.search).get('new') === '1')) {
       applyTemplate('tee', true);
     }
   }
