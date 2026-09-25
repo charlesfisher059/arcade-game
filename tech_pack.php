@@ -659,13 +659,11 @@ body.is-standalone .iphone-banner { display: none !important; }
   .top-actions .desk-only { display: none !important; }
   .top-actions { gap: 6px; }
   .top-actions .btn { padding: 10px 12px; min-height: 44px; }
-  .iphone-banner { display: none; } /* desktop-only phase — no phone install CTA */
-  body.force-mobile-preview .iphone-banner { display: block; margin: 0 12px 12px; padding: 12px 14px; }
-  body.tek-mobile-block .desktop-only-gate { display: flex; }
-  body.tek-mobile-block .shell,
-  body.tek-mobile-block .topbar,
-  body.tek-mobile-block .mobile-dock,
-  body.tek-mobile-block .toast { display: none !important; }
+  .iphone-banner {
+    display: block;
+    margin: 0 12px 12px;
+    padding: 12px 14px;
+  }
   .mobile-chip-bar {
     display: block;
     position: sticky;
@@ -793,7 +791,7 @@ body.is-standalone .iphone-banner { display: none !important; }
 }
 @media print {
   body { background: #fff; color: #000; padding-bottom: 0; }
-  .topbar, .rail, .inspector, .toast, .no-print, .mobile-dock, .iphone-banner, .mobile-chip-bar { display: none !important; }
+  .topbar, .rail, .inspector, .toast, .no-print, .mobile-dock, .iphone-banner, .mobile-chip-bar, .desktop-only-gate { display: none !important; }
   .shell { display: block; }
   .main { padding: 0; }
   .section { display: block !important; break-inside: avoid; page-break-inside: avoid; }
@@ -828,22 +826,12 @@ body.is-standalone .iphone-banner { display: none !important; }
 </header>
 
 <div class="iphone-banner no-print" id="iphoneBanner">
-  <strong>Desktop app (preview).</strong> Install Tek Pak on your computer first — phone support comes later.
+  <strong>Tek Pak.</strong> Create factory tech packs here. On desktop Chrome/Edge you can also <b>INSTALL APP</b>.
   <div class="steps">
-    <span><b>Chrome or Edge:</b> click <b>INSTALL APP</b>, or use the install icon in the address bar.</span>
+    <span>Save drafts to the server. Print/export for factory handoff.</span>
   </div>
   <div style="margin-top:10px">
     <button type="button" class="btn btn-primary" id="btnInstallBanner" hidden>INSTALL APP</button>
-  </div>
-</div>
-
-<div class="desktop-only-gate no-print" id="desktopOnlyGate" role="dialog" aria-modal="true" aria-labelledby="gateTitle">
-  <div class="gate-box">
-    <div class="gate-brand">DIAMONDS OUTTA DIRT</div>
-    <h1 id="gateTitle">Desktop only — for now</h1>
-    <p>Tek Pak is a desktop app preview. Open this page on your computer to install and try it before it goes on the live site.</p>
-    <p><code>/tek-pak</code></p>
-    <button type="button" class="btn btn-primary" id="btnGateDismiss" style="margin-top:8px">Continue on this device anyway</button>
   </div>
 </div>
 
@@ -1718,40 +1706,7 @@ body.is-standalone .iphone-banner { display: none !important; }
     toast('New tek pak');
   };
 
-  // Desktop-only first: block phone/narrow viewports unless user opts in
-  function isPhoneLike() {
-    const ua = navigator.userAgent || '';
-    const phoneUA = /Android.*Mobile|iPhone|iPod|webOS|BlackBerry|IEMobile|Opera Mini/i.test(ua);
-    const narrow = window.matchMedia('(max-width: 820px)').matches;
-    const coarse = window.matchMedia('(pointer: coarse)').matches && narrow;
-    return phoneUA || coarse;
-  }
-  function applyDesktopGate() {
-    const bypass = sessionStorage.getItem('tek_pak_mobile_ok') === '1';
-    if (isPhoneLike() && !bypass) {
-      document.body.classList.add('tek-mobile-block');
-    } else {
-      document.body.classList.remove('tek-mobile-block');
-      if (bypass) document.body.classList.add('force-mobile-preview');
-    }
-  }
-  applyDesktopGate();
-  const gateBtn = document.getElementById('btnGateDismiss');
-  if (gateBtn) {
-    gateBtn.onclick = () => {
-      sessionStorage.setItem('tek_pak_mobile_ok', '1');
-      document.body.classList.remove('tek-mobile-block');
-      document.body.classList.add('force-mobile-preview');
-      toast('Desktop mode recommended');
-    };
-  }
-  window.addEventListener('resize', () => {
-    // Don't re-block if they already opted in this session
-    if (sessionStorage.getItem('tek_pak_mobile_ok') === '1') return;
-    applyDesktopGate();
-  });
-
-  // Hide install tip when already running as home-screen / installed app
+  // Install / PWA
   let deferredInstall = null;
   const installBtns = [
     document.getElementById('btnInstall'),
@@ -1774,14 +1729,16 @@ body.is-standalone .iphone-banner { display: none !important; }
       try {
         const choice = await deferredInstall.userChoice;
         if (choice && choice.outcome === 'accepted') {
-          toast('Tek Pak installed on desktop');
+          toast('Tek Pak installed');
           showInstallButtons(false);
         }
       } catch (_) {}
       deferredInstall = null;
       return;
     }
-    toast('Chrome/Edge → Install app (address bar icon)');
+    const isiOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+    if (isiOS) toast('Safari → Share → Add to Home Screen');
+    else toast('Chrome/Edge → Install app (address bar icon)');
   }
 
   installBtns.forEach((b) => { b.onclick = () => triggerInstall(); });
@@ -1794,11 +1751,11 @@ body.is-standalone .iphone-banner { display: none !important; }
   window.addEventListener('appinstalled', () => {
     deferredInstall = null;
     showInstallButtons(false);
-    toast('Tek Pak desktop app ready');
+    toast('Tek Pak app ready');
   });
 
-  // Always offer banner install CTA on desktop
-  if (!isPhoneLike()) {
+  // Show banner install CTA when not already installed
+  {
     const ban = document.getElementById('btnInstallBanner');
     if (ban) ban.hidden = false;
   }
@@ -1810,6 +1767,8 @@ body.is-standalone .iphone-banner { display: none !important; }
     if (standalone) {
       document.body.classList.add('is-standalone');
       showInstallButtons(false);
+      const ban = document.getElementById('btnInstallBanner');
+      if (ban) ban.hidden = true;
     }
   } catch (_) {}
 
