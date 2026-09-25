@@ -605,9 +605,39 @@ table.data td input:focus, table.data td select:focus {
 }
 .iphone-banner strong { color: var(--accent); }
 .iphone-banner .steps { color: var(--muted); margin-top: 6px; display: grid; gap: 4px; }
-.iphone-banner .desk-hint { display: block; }
-.iphone-banner .phone-hint { display: none; }
 body.is-standalone .iphone-banner { display: none !important; }
+.desktop-only-gate {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  background:
+    radial-gradient(800px 400px at 50% 0%, rgba(0,255,157,.1), transparent 55%),
+    #050505;
+  color: var(--text);
+  padding: calc(24px + var(--safe-top)) 22px calc(24px + var(--safe-bottom));
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+.desktop-only-gate .gate-box { max-width: 420px; }
+.desktop-only-gate h1 {
+  font-family: var(--font-display);
+  font-size: 2.4rem;
+  margin: 0 0 10px;
+  font-weight: 600;
+}
+.desktop-only-gate p { color: var(--muted); margin: 0 0 18px; line-height: 1.55; }
+.desktop-only-gate .gate-brand {
+  letter-spacing: .2em;
+  font-size: 10px;
+  color: var(--accent);
+  margin-bottom: 18px;
+}
+.desktop-only-gate code {
+  color: var(--accent);
+  font-size: 12px;
+}
 .mobile-dock { display: none; }
 .desk-only { display: inline-flex; }
 .mobile-chip-bar { display: none; }
@@ -629,12 +659,13 @@ body.is-standalone .iphone-banner { display: none !important; }
   .top-actions .desk-only { display: none !important; }
   .top-actions { gap: 6px; }
   .top-actions .btn { padding: 10px 12px; min-height: 44px; }
-  .iphone-banner {
-    margin: 0 12px 12px;
-    padding: 12px 14px;
-  }
-  .iphone-banner .desk-hint { display: none; }
-  .iphone-banner .phone-hint { display: block; }
+  .iphone-banner { display: none; } /* desktop-only phase — no phone install CTA */
+  body.force-mobile-preview .iphone-banner { display: block; margin: 0 12px 12px; padding: 12px 14px; }
+  body.tek-mobile-block .desktop-only-gate { display: flex; }
+  body.tek-mobile-block .shell,
+  body.tek-mobile-block .topbar,
+  body.tek-mobile-block .mobile-dock,
+  body.tek-mobile-block .toast { display: none !important; }
   .mobile-chip-bar {
     display: block;
     position: sticky;
@@ -797,13 +828,22 @@ body.is-standalone .iphone-banner { display: none !important; }
 </header>
 
 <div class="iphone-banner no-print" id="iphoneBanner">
-  <strong>Tek Pak App.</strong> Try it here first — install to your desktop or phone, then put it on the live site when you’re ready.
-  <div class="steps" id="installSteps">
-    <span class="desk-hint"><b>Desktop (Chrome/Edge):</b> click <b>INSTALL APP</b> in the top bar.</span>
-    <span class="phone-hint"><b>iPhone:</b> Safari → Share → Add to Home Screen.</span>
+  <strong>Desktop app (preview).</strong> Install Tek Pak on your computer first — phone support comes later.
+  <div class="steps">
+    <span><b>Chrome or Edge:</b> click <b>INSTALL APP</b>, or use the install icon in the address bar.</span>
   </div>
   <div style="margin-top:10px">
     <button type="button" class="btn btn-primary" id="btnInstallBanner" hidden>INSTALL APP</button>
+  </div>
+</div>
+
+<div class="desktop-only-gate no-print" id="desktopOnlyGate" role="dialog" aria-modal="true" aria-labelledby="gateTitle">
+  <div class="gate-box">
+    <div class="gate-brand">DIAMONDS OUTTA DIRT</div>
+    <h1 id="gateTitle">Desktop only — for now</h1>
+    <p>Tek Pak is a desktop app preview. Open this page on your computer to install and try it before it goes on the live site.</p>
+    <p><code>/tek-pak</code></p>
+    <button type="button" class="btn btn-primary" id="btnGateDismiss" style="margin-top:8px">Continue on this device anyway</button>
   </div>
 </div>
 
@@ -1678,6 +1718,39 @@ body.is-standalone .iphone-banner { display: none !important; }
     toast('New tek pak');
   };
 
+  // Desktop-only first: block phone/narrow viewports unless user opts in
+  function isPhoneLike() {
+    const ua = navigator.userAgent || '';
+    const phoneUA = /Android.*Mobile|iPhone|iPod|webOS|BlackBerry|IEMobile|Opera Mini/i.test(ua);
+    const narrow = window.matchMedia('(max-width: 820px)').matches;
+    const coarse = window.matchMedia('(pointer: coarse)').matches && narrow;
+    return phoneUA || coarse;
+  }
+  function applyDesktopGate() {
+    const bypass = sessionStorage.getItem('tek_pak_mobile_ok') === '1';
+    if (isPhoneLike() && !bypass) {
+      document.body.classList.add('tek-mobile-block');
+    } else {
+      document.body.classList.remove('tek-mobile-block');
+      if (bypass) document.body.classList.add('force-mobile-preview');
+    }
+  }
+  applyDesktopGate();
+  const gateBtn = document.getElementById('btnGateDismiss');
+  if (gateBtn) {
+    gateBtn.onclick = () => {
+      sessionStorage.setItem('tek_pak_mobile_ok', '1');
+      document.body.classList.remove('tek-mobile-block');
+      document.body.classList.add('force-mobile-preview');
+      toast('Desktop mode recommended');
+    };
+  }
+  window.addEventListener('resize', () => {
+    // Don't re-block if they already opted in this session
+    if (sessionStorage.getItem('tek_pak_mobile_ok') === '1') return;
+    applyDesktopGate();
+  });
+
   // Hide install tip when already running as home-screen / installed app
   let deferredInstall = null;
   const installBtns = [
@@ -1691,8 +1764,6 @@ body.is-standalone .iphone-banner { display: none !important; }
       if (!b) return;
       b.hidden = !show;
     });
-    // On phone dock, when install shows, drop PRINT to keep 4 slots; PRINT stays in overflow via save flow? 
-    // Better: keep print, allow 5 cols when install visible
     const dock = document.querySelector('.mobile-dock');
     if (dock) dock.style.gridTemplateColumns = show ? 'repeat(5, 1fr)' : 'repeat(4, 1fr)';
   }
@@ -1703,20 +1774,14 @@ body.is-standalone .iphone-banner { display: none !important; }
       try {
         const choice = await deferredInstall.userChoice;
         if (choice && choice.outcome === 'accepted') {
-          toast('Tek Pak installed');
+          toast('Tek Pak installed on desktop');
           showInstallButtons(false);
         }
       } catch (_) {}
       deferredInstall = null;
       return;
     }
-    // Safari / unsupported browsers — guide the user
-    const isiOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
-    if (isiOS) {
-      toast('Safari → Share → Add to Home Screen');
-    } else {
-      toast('Use browser menu → Install / Create shortcut');
-    }
+    toast('Chrome/Edge → Install app (address bar icon)');
   }
 
   installBtns.forEach((b) => { b.onclick = () => triggerInstall(); });
@@ -1729,11 +1794,11 @@ body.is-standalone .iphone-banner { display: none !important; }
   window.addEventListener('appinstalled', () => {
     deferredInstall = null;
     showInstallButtons(false);
-    toast('Tek Pak app ready');
+    toast('Tek Pak desktop app ready');
   });
 
-  // Show banner install button on desktop even before beforeinstallprompt (manual tip)
-  if (!(/iPad|iPhone|iPod/.test(navigator.userAgent))) {
+  // Always offer banner install CTA on desktop
+  if (!isPhoneLike()) {
     const ban = document.getElementById('btnInstallBanner');
     if (ban) ban.hidden = false;
   }

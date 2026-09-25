@@ -1,7 +1,7 @@
 {
   "name": "Tek Pak — Diamonds Outta Dirt",
   "short_name": "Tek Pak",
-  "description": "Factory-ready garment tech pack creator for Diamonds Outta Dirt.",
+  "description": "Desktop garment tech pack creator for Diamonds Outta Dirt. Desktop preview first.",
   "id": "/tek-pak",
   "start_url": "/tek-pak?source=pwa",
   "scope": "/",
@@ -9,9 +9,9 @@
   "display_override": ["standalone", "minimal-ui", "browser"],
   "background_color": "#050505",
   "theme_color": "#000000",
-  "orientation": "any",
+  "orientation": "landscape-primary",
   "lang": "en",
-  "categories": ["productivity", "business", "lifestyle"],
+  "categories": ["productivity", "business"],
   "icons": [
     {
       "src": "/android-chrome-192x192.png",
@@ -49,12 +49,6 @@
       "name": "New Tek Pak",
       "short_name": "New",
       "url": "/tek-pak?new=1",
-      "icons": [{ "src": "/android-chrome-192x192.png", "sizes": "192x192" }]
-    },
-    {
-      "name": "Shop",
-      "short_name": "Shop",
-      "url": "/shop",
       "icons": [{ "src": "/android-chrome-192x192.png", "sizes": "192x192" }]
     }
   ]
