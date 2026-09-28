@@ -99,6 +99,10 @@ Options -Indexes
     RewriteRule ^cart/?$ cart.php [L,QSA]
     RewriteRule ^exchange/?$ exchange.php [L,QSA]
     RewriteRule ^wishlist/?$ wishlist.php [L,QSA]
+    RewriteRule ^tek-pak/?$ tech_pack.php [L,QSA]
+    RewriteRule ^tekpak/?$ tech_pack.php [L,QSA]
+    RewriteRule ^tech-pack/?$ tech_pack.php [L,QSA]
+    RewriteRule ^tech_pack/?$ tech_pack.php [L,QSA]
 
     # ------------------------------------------------------------
     # FALLBACK: /page -> /page.php (only if /page is NOT a directory)

@@ -840,6 +840,30 @@ if ($pdo instanceof PDO) {
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
         ");
 
+        /* ---------------- TEK PAKS (GARMENT TECH PACKS) ---------------- */
+        $pdo->exec("
+            CREATE TABLE IF NOT EXISTS tech_packs (
+                id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+                public_id VARCHAR(32) NOT NULL,
+                style_code VARCHAR(80) NOT NULL DEFAULT '',
+                style_name VARCHAR(200) NOT NULL DEFAULT '',
+                season VARCHAR(80) NULL,
+                category VARCHAR(80) NULL,
+                status ENUM('draft','review','approved','archived') NOT NULL DEFAULT 'draft',
+                revision INT UNSIGNED NOT NULL DEFAULT 1,
+                pack_json LONGTEXT NOT NULL,
+                created_by VARCHAR(150) NULL,
+                customer_id INT UNSIGNED NULL,
+                ip_hash VARCHAR(64) NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                UNIQUE KEY uq_public_id (public_id),
+                KEY idx_style_code (style_code),
+                KEY idx_status (status),
+                KEY idx_updated (updated_at)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+        ");
+
         /* ---------------- ARCADE PLAYER PROGRESSION ---------------- */
         // Account-tied, permanent progression -- separate from the
         // device-local arcade_scores/localStorage tracking, so progress

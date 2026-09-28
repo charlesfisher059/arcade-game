@@ -1,4 +1,4 @@
-{{
+{
   "name": "Diamonds Outta Dirt",
   "short_name": "DOD",
   "description": "Streetwear, custom fashion, and The Exchange marketplace.",
@@ -54,6 +54,12 @@
       "name": "The Exchange",
       "short_name": "Exchange",
       "url": "/exchange",
+      "icons": [{ "src": "/android-chrome-192x192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Tek Pak",
+      "short_name": "Tek Pak",
+      "url": "/tek-pak?source=pwa",
       "icons": [{ "src": "/android-chrome-192x192.png", "sizes": "192x192" }]
     },
     {

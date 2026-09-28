@@ -162,6 +162,18 @@ if ($first === 'services' || $first === 'service-shop' || $first === 'service_sh
     return true;
 }
 
+// 3c2) TEK PAK: /tek-pak plus aliases
+if ($first === 'tek-pak' || $first === 'tekpak' || $first === 'tech-pack' || $first === 'tech_pack') {
+    // Preserve query string (e.g. ?id=...)
+    $qs = [];
+    if (!empty($_GET) && is_array($_GET)) {
+        $qs = $_GET;
+    }
+    $_SERVER['REQUEST_URI'] = '/tech_pack.php' . ($qs ? ('?' . http_build_query($qs)) : '');
+    include __DIR__ . '/tech_pack.php';
+    return true;
+}
+
 // 3d) Clean URL -> PHP file: /about -> /about.php (only if file exists)
 $phpFile = __DIR__ . '/' . $first . '.php';
 if (is_file($phpFile)) {
